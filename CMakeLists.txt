@@ -49,19 +49,6 @@ project(emll
  VERSION 1.0
  LANGUAGES C)
 
-try_compile(EMLL_COMPILER_OPENMP_SUPPORTED ${CMAKE_BINARY_DIR}
-  "${PROJECT_SOURCE_DIR}/test/TestCompilerOpenMP.c"
-  COMPILE_DEFINITIONS -fopenmp
-  LINK_LIBRARIES -fopenmp)
-
-if (EMLL_COMPILER_OPENMP_SUPPORTED)
-  add_compile_options(-fopenmp)
-  list(APPEND RUNTIME_LIB -fopenmp)
-else()
-  message(STATUS "The compiler doesn't support OpenMP. Build serial version only.")
-  add_definitions(-DEMLL_SERIAL_ONLY)
-endif()
-
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
 file(GLOB interface_header "${PROJECT_SOURCE_DIR}/include/*.h")
@@ -77,6 +64,24 @@ else()
   set_source_files_properties(${arm_src} ${ext_src}
     PROPERTIES COMPILE_FLAGS "-march=armv8.2-a+dotprod+fp16")
   add_library(eml-armneon ${arm_src} ${ext_src} ${skinny_dot_src} ${neon_src})
+endif()
+
+try_compile(EMLL_COMPILER_OPENMP_SUPPORTED ${CMAKE_BINARY_DIR}
+  "${PROJECT_SOURCE_DIR}/test/TestCompilerOpenMP.c"
+  COMPILE_DEFINITIONS -fopenmp
+  LINK_LIBRARIES -fopenmp)
+
+if (EMLL_COMPILER_OPENMP_SUPPORTED)
+  find_package(OpenMP)
+  if (OPENMP_C_FOUND)
+    target_link_libraries(eml-armneon PUBLIC OpenMP::OpenMP_C)
+  else()
+    message(STATUS "OpenMP lib not found. Build serial version only.")
+    add_definitions(-DEMLL_SERIAL_ONLY)
+  endif()
+else()
+  message(STATUS "The compiler doesn't support OpenMP. Build serial version only.")
+  add_definitions(-DEMLL_SERIAL_ONLY)
 endif()
 
 option(EML_TEST "build test programs for the library" ON)

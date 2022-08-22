@@ -74,12 +74,6 @@
 
 #define SCRATCH_GEMM_D_K (SCRATCH_K_CORD(GEMM_D_K - 1) + 1)
 
-#define GEMM_STATIC_BUFFER(gemmtype, sbtype, satype) \
-__thread __attribute__((aligned(4096))) satype\
-  blas_##gemmtype##_sa[GEMM_S_MN * SCRATCH_GEMM_D_K];\
-__thread __attribute__((aligned(4096))) sbtype\
-  blas_##gemmtype##_sb[GEMM_S_MN * SCRATCH_GEMM_D_K];
-
 /* serial driver function with packing both source matrices,
  * loop order: N { M { K } } */
 #define GEMM_SERIAL_FUNC_LM(gemmtype, atype, satype, btype, sbtype, ctype,\
@@ -89,6 +83,10 @@ static void gemmtype##_serial_lm_m##unroll_m##n##unroll_n(\
   const atype *A, const btype *B, ctype *C,\
   uint32_t M, uint32_t N, uint32_t K, ctype beta_inp) {\
 \
+  __attribute__((aligned(4096))) satype\
+    blas_##gemmtype##_sa[GEMM_D_MN * SCRATCH_GEMM_D_K];\
+  __attribute__((aligned(4096))) sbtype\
+    blas_##gemmtype##_sb[GEMM_R_MN * SCRATCH_GEMM_D_K];\
   satype * const sa = blas_##gemmtype##_sa;\
   sbtype * const sb = blas_##gemmtype##_sb;\
 \
@@ -138,6 +136,10 @@ static void gemmtype##_serial_ln_m##unroll_m##n##unroll_n(\
   const atype *A, const btype *B, ctype *C,\
   uint32_t M, uint32_t N, uint32_t K, ctype beta_inp) {\
 \
+  __attribute__((aligned(4096))) satype\
+    blas_##gemmtype##_sa[GEMM_R_MN * SCRATCH_GEMM_D_K];\
+  __attribute__((aligned(4096))) sbtype\
+    blas_##gemmtype##_sb[GEMM_D_MN * SCRATCH_GEMM_D_K];\
   satype * const sa = blas_##gemmtype##_sa;\
   sbtype * const sb = blas_##gemmtype##_sb;\
 \
@@ -192,8 +194,6 @@ static inline bool inline_gemm_par_valid(const void *A, const void *B,
 /* serial GEMM driver function */
 #define GEMM_SERIAL_FUNC(gemmtype, atype, satype, btype, sbtype, ctype,\
   unroll_l2, unroll_l1, skin1_maxm, skin1_maxn, skin2_maxm, skin2_maxn, ...)\
-\
-GEMM_STATIC_BUFFER(gemmtype, sbtype, satype)\
 \
 GEMM_SERIAL_FUNC_LM(gemmtype, atype, satype, btype, sbtype, ctype,\
   unroll_l2, unroll_l1)\
@@ -404,6 +404,10 @@ int gemmtype(int a_rowmajor, int b_rowmajor,\
     return 0;\
   }\
 \
+  __attribute__((aligned(4096))) satype\
+    blas_##gemmtype##_sa[GEMM_S_MN * SCRATCH_GEMM_D_K];\
+  __attribute__((aligned(4096))) sbtype\
+    blas_##gemmtype##_sb[GEMM_S_MN * SCRATCH_GEMM_D_K];\
   satype * const blas_master_sa = blas_##gemmtype##_sa;\
   sbtype * const blas_master_sb = blas_##gemmtype##_sb;\
   uint32_t acopy_dim_left, bcopy_dim_left;\

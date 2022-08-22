@@ -346,8 +346,6 @@ static inline bool unroll_test_m##m_unroll##n##n_dim(uint32_t M, uint32_t K) {\
 
 #define GEMM_SKINNY_DOT_SERIAL_FUNC_NOINCINLINE(gemm, n_dim, k_mask, m_mask,\
   scratch_size, atype, btype, unroll_test) \
-__attribute__((aligned(4096))) static __thread gemm##_skinnydot_bscalar\
-  blas_skinny_dot_b_scratch_##btype##n##n_dim[scratch_size];\
 void gemm##_arowmajor_bskinny_a##atype##_b##btype##_n##n_dim(\
   const gemm##_skinnydot_ascalar *A, const gemm##_skinnydot_bscalar *B,\
   gemm##_skinnydot_cscalar *C, uint32_t M, uint32_t K,\
@@ -383,6 +381,8 @@ void gemm##_arowmajor_bskinny_a##atype##_b##btype##_n##n_dim(\
       uint32_t m_left = M;\
       MACRO_EXPANSION_M_##m_mask(GEMM_SKINNY_DOT_INLINE_CALL_LOOP, gemm, n_dim)\
     } else {\
+      __attribute__((aligned(4096))) gemm##_skinnydot_bscalar\
+        blas_skinny_dot_b_scratch_##btype##n##n_dim[scratch_size];\
       if (b_rowmajor) {\
         const gemm##_skinnydot_bscalar *b_ptr = B + k_pos * n_dim;\
         gemm##_skinnydot_bscalar *sb_ptr =\
@@ -493,6 +493,8 @@ void gemm##_arowmajor_bskinny_a##atype##_b##btype##_n##n_dim##_omp(\
   thread_args.m_B = B;\
   thread_args.m_C = C;\
   thread_args.m_M = M;\
+  __attribute__((aligned(4096))) gemm##_skinnydot_bscalar\
+    blas_skinny_dot_b_scratch_##btype##n##n_dim[scratch_size];\
   /* use the tls scratch of master thread for shared buffer */\
   gemm##_skinnydot_bscalar * const b_scratch_master =\
     blas_skinny_dot_b_scratch_##btype##n##n_dim;\

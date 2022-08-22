@@ -326,8 +326,6 @@ static inline void inline_##gemm##_acolmajor_bskinny_beta_##n_dim(\
   k_mask, m_mask, stack_size, atype, btype) \
 GEMM_SKINNY_GER_BETA_FUNC(gemm, n_dim)\
 GEMM_SKINNY_GER_INLINE_FUNCS(gemm, n_dim, k_mask, m_mask)\
-__attribute__((aligned(4096))) static __thread gemm##_skinnyger_cscalar\
-  gemm##_acolmajor_bskinny_a##atype##_b##btype##_##n_dim##_cscratch[stack_size];\
 GEMM_SKINNY_GER_INLINE_DEPACK_FUNC(gemm, m_mask, n_dim)\
 void gemm##_acolmajor_bskinny_a##atype##_b##btype##_n##n_dim(\
   const gemm##_skinnyger_ascalar *A,\
@@ -335,6 +333,9 @@ void gemm##_acolmajor_bskinny_a##atype##_b##btype##_n##n_dim(\
   gemm##_skinnyger_cscalar *C,\
   uint32_t M, uint32_t K, uint8_t b_c_order,\
   gemm##_skinnyger_cscalar beta_inp) {\
+\
+  __attribute__((aligned(4096))) gemm##_skinnyger_cscalar\
+    gemm##_acolmajor_bskinny_a##atype##_b##btype##_##n_dim##_cscratch[stack_size];\
 \
   const bool b_rowmajor = b_c_order & 1;\
   const bool c_rowmajor = b_c_order & 2;\
@@ -431,6 +432,8 @@ void gemm##_acolmajor_bskinny_a##atype##_b##btype##_n##n_dim##_omp(\
   omp_set_num_threads(num_threads);\
   _Pragma("omp parallel")\
   {\
+    __attribute__((aligned(4096))) gemm##_skinnyger_cscalar\
+      gemm##_acolmajor_bskinny_a##atype##_b##btype##_##n_dim##_cscratch[stack_size];\
     const gemm##_skinnyger_ascalar * const A = task_info.m_A;\
     const gemm##_skinnyger_bscalar * const B = task_info.m_B;\
     gemm##_skinnyger_cscalar * const C = task_info.m_C;\
